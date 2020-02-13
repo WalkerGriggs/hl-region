@@ -43,7 +43,6 @@ window."
   :type 'boolean
   :group 'hl-region)
 
-
 ;;;###autoload
 (defun hl-region (beg end)
   "Highlights the active region."
@@ -52,7 +51,7 @@ window."
 
   ;; Lazy -- todo: grow region when overlapping
   (dolist (overlay (overlays-in beg end))
-    (when (hl-region--overlay-p overlay)
+    (when (hl-region--highlight-p overlay)
       (goto-char (overlay-start overlay))
       (error "Highlighted region already exists here")))
 
@@ -67,23 +66,51 @@ window."
   (interactive)
   (mapc #'hl-region--remove (overlays-at (point))))
 
-(defun hl-region--remove (overlay)
-  "Removes the given overlay"
-  (if (hl-region--overlay-p overlay)
-      (delete-overlay overlay)))
+;;;###autoload
+(defun hl-region-next-highlight ()
+  "Move pointer to next highlighted region"
+  (interactive)
+  (hl-region--highlights-in-direction (point) (point-max) #'min))
+
+;;;###autoload
+(defun hl-region-prev-highlight ()
+  (interactive)
+  (hl-region--highlights-in-direction (point-min) (point) #'max))
 
 (defun hl-region--make-overlay (beg end)
   "Creates a new overlay of type 'hl-region--region spanning the given region."
   (let ((overlay (make-overlay beg end nil t nil)))
-    (overlay-put overlay 'type 'hl-region--region)
+    (overlay-put overlay 'type 'hl-region--highlight)
     (overlay-put overlay 'priority -50)
     (overlay-put overlay 'face hl-line-face)
     overlay))
 
-(defun hl-region--overlay-p (overlay)
+(defun hl-region--highlight-p (overlay)
   "Checks if overlay has been created by hl-region"
   (memq (overlay-get overlay 'type)
-        '(hl-region--region)))
+        '(hl-region--highlight)))
+
+(defun hl-region--remove (overlay)
+  "Removes the given overlay"
+  (if (hl-region--highlight-p overlay)
+      (delete-overlay overlay)))
+
+(defun hl-region--highlights-in-range (beg end)
+  "Returns all regions in given range"
+  (remove-if-not
+   #'hl-region--highlight-p
+   (overlays-in beg end)))
+
+(defun hl-region--highlights-in-direction (beg end comparison)
+  (let ((overlays-after-point
+         (set-difference
+          (hl-region--highlights-in-range beg end)
+          (overlays-at (point)))))
+    (if overlays-after-point
+        (goto-char
+         (reduce comparison
+                 (mapcar #'overlay-start overlays-after-point)))
+      (message "No highlights after point."))))
 
 (provide 'hl-region)
 
