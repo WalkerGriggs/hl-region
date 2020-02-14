@@ -49,11 +49,9 @@ window."
   (interactive "r")
   (deactivate-mark)
 
-  ;; Lazy -- todo: grow region when overlapping
   (dolist (overlay (overlays-in beg end))
     (when (hl-region--highlight-p overlay)
-      (goto-char (overlay-start overlay))
-      (error "Highlighted region already exists here")))
+      (hl-region--remove overlay)))
 
   (progn
     (setq earmark-overlay (hl-region--make-overlay beg end))
@@ -64,6 +62,7 @@ window."
 (defun hl-region-remove ()
   "Removes the highlighted region at the current point."
   (interactive)
+  (deactivate-mark)
   (mapc #'hl-region--remove (overlays-at (point))))
 
 ;;;###autoload
@@ -84,6 +83,14 @@ window."
     (overlay-put overlay 'priority -50)
     (overlay-put overlay 'face hl-line-face)
     overlay))
+
+(defun hl-region--grow-overlay (beg end overlay)
+  (let ((beg (min beg (overlay-start overlay)))
+        (end (max end (overlay-end overlay))))
+    (mapc #'hl-region--remove (overlays-at (point)))
+    (setq earmark-overlay (hl-region--make-overlay beg end))
+    (overlay-put earmark-overlay
+                 'window (unless hl-region-sticky-flag (selected-window)))))
 
 (defun hl-region--highlight-p (overlay)
   "Checks if overlay has been created by hl-region"
