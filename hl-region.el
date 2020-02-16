@@ -49,6 +49,7 @@ window."
   (interactive "r")
   (deactivate-mark)
 
+  ;; Remove overlappying overlays
   (dolist (overlay (overlays-in beg end))
     (when (hl-region--highlight-p overlay)
       (hl-region--remove overlay)))
@@ -64,6 +65,13 @@ window."
   (interactive)
   (deactivate-mark)
   (mapc #'hl-region--remove (overlays-at (point))))
+
+;;;###autoload
+(defun hl-region-remove-all ()
+  "Removes all highlighted regions from the current buffer"
+  (interactive)
+  (dolist (overlay (hl-region--highlights-in-buffer))
+    (hl-region--remove overlay)))
 
 ;;;###autoload
 (defun hl-region-next-highlight ()
@@ -102,13 +110,18 @@ window."
   (if (hl-region--highlight-p overlay)
       (delete-overlay overlay)))
 
+(defun hl-region--highlights-in-buffer ()
+  "Returns all highlights in the current buffer"
+  (hl-region--highlights-in-range (point-min) (point-max)))
+
 (defun hl-region--highlights-in-range (beg end)
-  "Returns all regions in given range"
+  "Returns all highlights in given range"
   (remove-if-not
    #'hl-region--highlight-p
    (overlays-in beg end)))
 
 (defun hl-region--highlights-in-direction (beg end comparison)
+  "Returns all highlights in direction (#'max or #'min) between beg and end"
   (let ((overlays-after-point
          (set-difference
           (hl-region--highlights-in-range beg end)
