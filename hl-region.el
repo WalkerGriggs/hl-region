@@ -27,6 +27,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'hl-line) ;; hl-line-face
 
 (defgroup hl-region nil
@@ -61,7 +62,7 @@ Otherwise, hl-region can highlight partial lines."
     (when (hl-region--highlight-p overlay)
       (hl-region--remove overlay)))
 
-  (destructuring-bind (beg . end) (hl-region--region-cons beg end)
+  (cl-destructuring-bind (beg . end) (hl-region--region-cons beg end)
     (let ((overlay (hl-region--make-overlay beg end)))
       (overlay-put overlay
                    'window (unless hl-region-sticky-flag (selected-window))))))
@@ -133,19 +134,19 @@ Otherwise, hl-region can highlight partial lines."
 
 (defun hl-region--highlights-in-range (beg end)
   "Returns all highlights in given range"
-  (remove-if-not
+  (cl-remove-if-not
    #'hl-region--highlight-p
    (overlays-in beg end)))
 
 (defun hl-region--highlights-in-direction (beg end comparison)
   "Returns all highlights in direction (#'max or #'min) between beg and end"
   (let ((overlays-after-point
-         (set-difference
+         (cl-set-difference
           (hl-region--highlights-in-range beg end)
           (overlays-at (point)))))
     (if overlays-after-point
         (goto-char
-         (reduce comparison
+         (cl-reduce comparison
                  (mapcar #'overlay-start overlays-after-point)))
       (message "No highlights after point."))))
 
