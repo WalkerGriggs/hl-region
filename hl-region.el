@@ -99,14 +99,6 @@ Otherwise, hl-region can highlight partial lines."
     (overlay-put overlay 'face hl-line-face)
     overlay))
 
-(defun hl-region--grow-overlay (beg end overlay)
-  (let ((beg (min beg (overlay-start overlay)))
-        (end (max end (overlay-end overlay))))
-    (mapc #'hl-region--remove (overlays-at (point)))
-    (setq earmark-overlay (hl-region--make-overlay beg end))
-    (overlay-put earmark-overlay
-                 'window (unless hl-region-sticky-flag (selected-window)))))
-
 (defun hl-region--region-cons (beg end)
   "Structure the region beginning and end. Correct region bounds if needed"
   (if hl-region-highlight-entire-line
