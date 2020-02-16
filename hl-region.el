@@ -43,6 +43,13 @@ window."
   :type 'boolean
   :group 'hl-region)
 
+(defcustom hl-region-highlight-entire-line t
+  "Non nil means that highlighted region will be corrected so that
+every line included in the region will be higlighted beginning to end.
+Otherwise, hl-region can highlight partial lines."
+  :type 'boolean
+  :group 'hl-region)
+
 ;;;###autoload
 (defun hl-region (beg end)
   "Highlights the active region."
@@ -54,10 +61,10 @@ window."
     (when (hl-region--highlight-p overlay)
       (hl-region--remove overlay)))
 
-  (progn
-    (setq earmark-overlay (hl-region--make-overlay beg end))
-    (overlay-put earmark-overlay
-                 'window (unless hl-region-sticky-flag (selected-window)))))
+  (destructuring-bind (beg . end) (hl-region--region-cons beg end)
+    (let ((overlay (hl-region--make-overlay beg end)))
+      (overlay-put overlay
+                   'window (unless hl-region-sticky-flag (selected-window))))))
 
 ;;;###autoload
 (defun hl-region-remove ()
@@ -99,6 +106,24 @@ window."
     (setq earmark-overlay (hl-region--make-overlay beg end))
     (overlay-put earmark-overlay
                  'window (unless hl-region-sticky-flag (selected-window)))))
+
+(defun hl-region--region-cons (beg end)
+  "Structure the region beginning and end. Correct region bounds if needed"
+  (if hl-region-highlight-entire-line
+      (hl-region--correct-region beg end)
+    (cons beg end)))
+
+(defun hl-region--correct-region (beg end)
+  "Corrects the region's begging and end to include the entire line."
+  (save-excursion
+      (let* ((beg* (progn (goto-char beg)
+                          (line-beginning-position)))
+             (end* (progn (goto-char end)
+                          (if (and (zerop (current-column))
+                                   (/= end beg*))
+                              end
+                            (line-beginning-position 2)))))
+        (cons beg* end*))))
 
 (defun hl-region--highlight-p (overlay)
   "Checks if overlay has been created by hl-region"
