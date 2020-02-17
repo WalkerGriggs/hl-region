@@ -51,6 +51,12 @@ Otherwise, hl-region can highlight partial lines."
   :type 'boolean
   :group 'hl-region)
 
+(defcustom hl-region-buffer-wrap t
+  "Non nil means that the next/prev functions wrap to the top/bottom of the
+page. Otherwise, navigation stops at the end of the buffer."
+  :type 'boolean
+  :group 'hl-region)
+
 ;;;###autoload
 (defun hl-region (beg end)
   "Highlights the active region."
@@ -138,17 +144,28 @@ Otherwise, hl-region can highlight partial lines."
    #'hl-region--highlight-p
    (overlays-in beg end)))
 
+(defun hl-region--exclusive-highlights-in-range (beg end)
+  "Returns all highlights in given range, excluding any overlays at the point."
+  (cl-set-difference
+   (hl-region--highlights-in-range beg end)
+   (overlays-at (point))))
+
 (defun hl-region--highlights-in-direction (beg end comparison)
   "Returns all highlights in direction (#'max or #'min) between beg and end"
   (let ((overlays-after-point
-         (cl-set-difference
-          (hl-region--highlights-in-range beg end)
-          (overlays-at (point)))))
-    (if overlays-after-point
-        (goto-char
-         (cl-reduce comparison
-                 (mapcar #'overlay-start overlays-after-point)))
-      (message "No highlights after point."))))
+         (hl-region--exclusive-highlights-in-range beg end)))
+
+    (cond (overlays-after-point
+           (goto-char
+            (cl-reduce comparison
+                       (mapcar #'overlay-start overlays-after-point))))
+
+          (hl-region-buffer-wrap ;; wrap buffer otherwise
+           (progn
+             (message "Wrapping around buffer.")
+             (hl-region--highlights-in-direction (point-min) (point-max) comparison)))
+
+          (t (message "Buffer bounds reached.")))))
 
 (provide 'hl-region)
 
