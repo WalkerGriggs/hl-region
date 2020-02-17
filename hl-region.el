@@ -104,6 +104,7 @@ page. Otherwise, navigation stops at the end of the buffer."
     (overlay-put overlay 'type 'hl-region--highlight)
     (overlay-put overlay 'priority -50)
     (overlay-put overlay 'face hl-line-face)
+    (overlay-put overlay 'evaporate t)
     overlay))
 
 (defun hl-region--region-cons (beg end)
